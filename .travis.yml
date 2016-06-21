@@ -255,15 +255,16 @@ matrix:
         # travis-wait seems to stop at 20 mins, regardless if output is being generated
         - (while true ; do sleep 60 ; echo "ping" ; done ) &
 
+        - swig -version
         - pushd /home/travis/build/
         - testbot/recipes/fetch.sh matlab$MATLABRELEASE.tar.gz
         - mkdir matlab && tar -xf matlab$MATLABRELEASE.tar.gz -C matlab
         - popd
         - mkdir build
         - pushd build
-        - PATH=/home/travis/build/swig_matlab/bin:/home/travis/build/swig_matlab/share:$PATH cmake  -DOLD_LLVM=ON -DCMAKE_INSTALL_PREFIX=/home/travis/build/matlab-install -DWITH_CLANG=ON -DWITH_ECOS=ON -DWITH_MOSEK=ON -DWITH_DEEPBIND=ON -DWITH_MATLAB=ON -DWITH_WORHP=ON -DWITH_SLICOT=OFF -DWITH_OOQP=ON -DWITH_PROFILING=ON -DWITH_DOC=ON -DWITH_EXAMPLES=ON -DWITH_COVERAGE=ON -DWITH_EXTRA_WARNINGS=ON -DWITH_JSON=ON ..
+        - cmake  -DOLD_LLVM=ON -DCMAKE_INSTALL_PREFIX=/home/travis/build/matlab-install -DWITH_CLANG=ON -DWITH_ECOS=ON -DWITH_MOSEK=ON -DWITH_DEEPBIND=ON -DWITH_MATLAB=ON -DWITH_WORHP=ON -DWITH_SLICOT=OFF -DWITH_OOQP=ON -DWITH_PROFILING=ON -DWITH_DOC=ON -DWITH_EXAMPLES=ON -DWITH_COVERAGE=ON -DWITH_EXTRA_WARNINGS=ON -DWITH_JSON=ON ..
         - make -j2
-        - sudo make -j2 install
+        - sudo make -j2 install || remote_access
         - popd
         - matlabtunnel
         - pushd test && PATH=/home/travis/build/matlab/bin/:$PATH make matlab && popd
