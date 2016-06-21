@@ -48,6 +48,8 @@ matrix:
         - coveralls --verbose --root .. --exclude swig -E '.*cxx' -E '.*CMakeFiles.*' -E '.*casadiPYTHON_wrap.*' -E '.*lib.*' -E '.*_export.*'  --exclude experimental --exclude _temp.cc --exclude docs --exclude codegen --exclude external_packages --exclude cmake --exclude test --gcov-options '\-lp'
     - compiler: gcc
       os: linux
+      dist: trusty
+      language: generic
       env: TESTMODE=full
       script:
         - sudo apt-get install valgrind libgomp1 -y
