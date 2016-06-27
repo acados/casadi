@@ -595,6 +595,47 @@ namespace casadi {
   }
 
   template<>
+  std::vector<int> SX::classify_linear(const SX &x, const SX &expr) {
+    casadi_assert(x.is_vector());
+    casadi_assert(x.is_dense());
+
+    casadi_assert(expr.is_vector());
+    casadi_assert(expr.is_dense());
+
+    std::vector<int> ret(x.numel(), 0);
+
+    Function J = Function("J", {expr}, {jacobian(x, expr).T()});
+
+    // Evaluation buffers
+    vector<const bvec_t*> arg(J.sz_arg(), 0);
+    vector<bvec_t*> res(J.sz_res(), 0);
+    vector<int> iw(J.sz_iw());
+    vector<bvec_t> w(J.sz_w(), 0);
+
+    // Seeds and sensitivities
+    vector<bvec_t> seed(J.nnz_in(), bvec_t(1));
+    arg[0] = get_ptr(seed);
+    vector<bvec_t> sens(J.nnz_out(), bvec_t(0));
+    res[0] = get_ptr(sens);
+
+    // Propagate the dependencies
+    J->sp_fwd(get_ptr(arg), get_ptr(res), get_ptr(iw), get_ptr(w), 0);
+
+    // Harvest the results
+    for (int j = 0; j < x.numel(); ++j) {
+      if (J.sparsity_out(0).colind(j) != J.sparsity_out(0).colind(j+1)) {
+        bool linear = true;
+        for (int k = J.sparsity_out(0).colind(j); k < J.sparsity_out(0).colind(j+1); ++k) {
+          linear = linear && !sens[k];
+        }
+        ret[j] = linear? 1: 2;
+      }
+    }
+
+    return ret;
+  }
+
+  template<>
   SX SX::jacobian(const SX &ex, const SX &arg, bool symmetric) {
     Function temp("temp", {arg}, {ex});
     return SX::jac(temp, 0, 0, false, symmetric);

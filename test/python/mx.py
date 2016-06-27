@@ -2428,5 +2428,15 @@ class MXtests(casadiTestCase):
 
         self.checkfunction(f,fr,inputs=[0])
 
+  def test_classify_linear(self):
+    x =MX.sym("x")
+    y =MX.sym("y")
+
+    p =MX.sym("p")
+
+    e = vertcat(0,x,y,p,2*p**3,x*y,x*p,sin(x),cos(y),sqrt(x+y),p*p*x,x*y*p)
+
+    self.checkarray(classify_linear(e,vertcat(x,y)),[0, 1, 1, 0,0, 2, 1, 2, 2, 2, 1, 2])
+
 if __name__ == '__main__':
     unittest.main()

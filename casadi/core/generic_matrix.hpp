@@ -437,6 +437,18 @@ namespace casadi {
       return MatType::depends_on(f, arg);
     }
 
+    /** \brief Classify the expression wrt to given variables
+        For each element in expression f, this function categorizes into:
+          - element is nonlinear in arg               (2)
+          - element is    linear in arg               (1)
+          - element does not depend on arg at all     (0)
+
+        This function may classify in a category higher than expected, but never lower.
+    */
+    inline friend std::vector<int> classify_linear(const MatType& f, const MatType &arg) {
+      return MatType::classify_linear(f, arg);
+    }
+
     /** \brief  Substitute variable v with expression vdef in an expression ex */
     friend inline MatType substitute(const MatType& ex, const MatType& v,
                                      const MatType& vdef) {

@@ -22,7 +22,6 @@
  *
  */
 
-
 #ifndef CASADI_MATRIX_IMPL_HPP
 #define CASADI_MATRIX_IMPL_HPP
 
@@ -2225,6 +2224,12 @@ namespace casadi {
   }
 
   template<typename Scalar>
+  std::vector<int> Matrix<Scalar>::classify_linear(const Matrix<Scalar> &x,
+      const Matrix<Scalar> &arg) {
+    throw CasadiException("\"depends_on\" not defined for instantiation");
+  }
+
+  template<typename Scalar>
   Matrix<Scalar> Matrix<Scalar>::jacobian(const Matrix<Scalar> &f,
                                               const Matrix<Scalar> &x,
                                               bool symmetric) {
@@ -2579,6 +2584,7 @@ namespace casadi {
                                         std::vector<SX >& ex,
                                         bool reverse);
   template<> bool SX::depends_on(const SX &x, const SX &arg);
+  template<> std::vector<int> SX::classify_linear(const SX &x, const SX &arg);
   template<> std::vector<SX > SX::symvar(const SX &x);
   template<> SX SX::jacobian(const SX &f, const SX &x, bool symmetric);
   template<> SX SX::gradient(const SX &f, const SX &x);

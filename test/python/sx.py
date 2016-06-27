@@ -35,7 +35,7 @@ try:
 	from scipy.sparse import csr_matrix
 except:
 	scipy_available = False
-	
+
 class SXtests(casadiTestCase):
 
   def setUp(self):
@@ -1231,6 +1231,18 @@ class SXtests(casadiTestCase):
       warnings.simplefilter("ignore")
       is_smooth(x)
 
+  def test_classify_linear(self):
+    x =SX.sym("x")
+    y =SX.sym("y")
+
+    p =SX.sym("p")
+
+
+    e = vertcat(0,x,y,p,2*p**3,x*y,x*p,sin(x),cos(y),sqrt(x+y),p*p*x,x*y*p)
+
+    self.checkarray(classify_linear(e,vertcat(x,y)),[0, 1, 1, 0,0, 2, 1, 2, 2, 2, 1, 2])
+
+
+
 if __name__ == '__main__':
     unittest.main()
-
