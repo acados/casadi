@@ -2436,7 +2436,8 @@ class MXtests(casadiTestCase):
 
     e = vertcat(0,x,y,p,2*p**3,x*y,x*p,sin(x),cos(y),sqrt(x+y),p*p*x,x*y*p)
 
-    self.checkarray(classify_linear(e,vertcat(x,y)),[0, 1, 1, 0,0, 2, 1, 2, 2, 2, 1, 2])
-
+    self.checkarray(vector_linear_depends_on(e,vertcat(x,y)),[1, 1, 1, 1,1, 0, 1, 0, 0, 0, 1, 0])
+    self.checkarray(vector_depends_on(e,vertcat(x,y)),[0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1])
+    
 if __name__ == '__main__':
     unittest.main()

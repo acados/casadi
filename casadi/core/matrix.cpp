@@ -595,40 +595,60 @@ namespace casadi {
   }
 
   template<>
-  std::vector<int> SX::classify_linear(const SX &x, const SX &expr) {
+  std::vector<bool> SX::vector_depends_on(const SX &x, const SX &arg) {
     casadi_assert(x.is_vector());
     casadi_assert(x.is_dense());
 
-    casadi_assert(expr.is_vector());
-    casadi_assert(expr.is_dense());
+    casadi_assert(arg.is_vector());
+    casadi_assert(arg.is_dense());
 
-    std::vector<int> ret(x.numel(), 0);
+    // Allocate return vector
+    std::vector<bool> ret(x.numel(), false);
 
-    Function J = Function("J", {expr}, {jacobian(x, expr).T()});
+    // Construct a temporary algorithm
+    Function temp("temp", {arg}, {x});
 
-    // Evaluation buffers
-    vector<const bvec_t*> arg(J.sz_arg(), 0);
-    vector<bvec_t*> res(J.sz_res(), 0);
-    vector<int> iw(J.sz_iw());
-    vector<bvec_t> w(J.sz_w(), 0);
+    // Perform a single dependency sweep
+    vector<bvec_t> t_in(arg.nnz(), 1), t_out(x.nnz());
+    temp({get_ptr(t_in)}, {get_ptr(t_out)});
 
-    // Seeds and sensitivities
-    vector<bvec_t> seed(J.nnz_in(), bvec_t(1));
-    arg[0] = get_ptr(seed);
-    vector<bvec_t> sens(J.nnz_out(), bvec_t(0));
-    res[0] = get_ptr(sens);
+    // Harvest the results
+    for (int k = 0; k < x.numel(); ++k) {
+      if (t_out[k]) ret[k] = true;
+    }
 
-    // Propagate the dependencies
-    J->sp_fwd(get_ptr(arg), get_ptr(res), get_ptr(iw), get_ptr(w), 0);
+    return ret;
+  }
+
+  template<>
+  std::vector<bool> SX::vector_linear_depends_on(const SX &x, const SX &arg) {
+    casadi_assert(x.is_vector());
+    casadi_assert(x.is_dense());
+
+    casadi_assert(arg.is_vector());
+    casadi_assert(arg.is_dense());
+
+    // Allocate return vector
+    std::vector<bool> ret(x.numel(), true);
+
+    // Construct a temporary algorithm
+    Function temp("temp", {arg}, {jacobian(x, arg).T()});
+
+    // Perform a single dependency sweep
+    vector<bvec_t> t_in(arg.nnz(), 1), t_out(x.nnz());
+    temp({get_ptr(t_in)}, {get_ptr(t_out)});
+
+    const Sparsity& sp = temp.sparsity_out(0);
 
     // Harvest the results
     for (int j = 0; j < x.numel(); ++j) {
-      if (J.sparsity_out(0).colind(j) != J.sparsity_out(0).colind(j+1)) {
-        bool linear = true;
-        for (int k = J.sparsity_out(0).colind(j); k < J.sparsity_out(0).colind(j+1); ++k) {
-          linear = linear && !sens[k];
+      if (sp.colind(j) != sp.colind(j+1)) {
+        for (int k = sp.colind(j); k < sp.colind(j+1); ++k) {
+          if (t_out[k]) {
+            ret[j] = false;
+            break;
+          }
         }
-        ret[j] = linear? 1: 2;
       }
     }
 

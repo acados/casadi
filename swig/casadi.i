@@ -2857,8 +2857,12 @@ DECL bool casadi_depends_on(const M& f, const M& arg) {
   return depends_on(f, arg);
 }
 
-DECL std::vector<int> casadi_classify_linear(const M& f, const M& arg) {
-  return classify_linear(f, arg);
+DECL std::vector<bool> casadi_vector_depends_on(const M& f, const M& arg) {
+  return vector_depends_on(f, arg);
+}
+
+DECL std::vector<bool> casadi_vector_linear_depends_on(const M& f, const M& arg) {
+  return vector_linear_depends_on(f, arg);
 }
 
 DECL M casadi_solve(const M& A, const M& b) {

@@ -404,7 +404,10 @@ namespace casadi {
     static MX conditional(const MX& ind, const std::vector<MX> &x, const MX& x_default,
                           bool short_circuit=true);
     static bool depends_on(const MX& x, const MX& arg);
-    static std::vector<int> classify_linear(const MX& x, const MX& arg);
+    static std::vector<bool> vector_depends_on(const MX &x,
+                                                 const MX &arg);
+    static std::vector<bool> vector_linear_depends_on(const MX &x,
+                                                        const MX &arg);
     static MX logic_not(const MX& x);
     static MX simplify(const MX& x);
     static MX mpower(const MX& a, const MX& b);
