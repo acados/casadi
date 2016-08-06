@@ -79,11 +79,17 @@
       mexPrintf("%.*s", static_cast<int>(num), s);
     }
 
+#ifdef HAVE_OCTAVE
+    // Flush the command window buffer (needed in gui mode)
+    static void mexflush(bool error) {
+    }
+#else
     // Flush the command window buffer (needed in gui mode)
     static void mexflush(bool error) {
       mexEvalString("drawnow('update');");
       mexEvalString("pause(0.0001);");
     }
+#endif
 
 #ifdef HAVE_OCTAVE
     // Never for Octave
@@ -2059,17 +2065,10 @@ import_array();
  // Pass input by reference, cleanup
 %typemap(freearg, noblock=1) const xType & {}
 
-%typemap(doc, type=xName) xType "etst";
-%typemap(doc, type=xName) const xType "etst";
-%typemap(doc, type=xName) const xType& "etst";
 %enddef
 
  // Define all output typemaps
 %define %casadi_output_typemaps(xName, xType...)
-
-%typemap(doc, type=xName) xType "etst";
-%typemap(doc, type=xName) const xType "etst";
-%typemap(doc, type=xName) const xType& "etst";
 
  // Return-by-value
 %typemap(out, doc=xName, noblock=1, fragment="casadi_all") xType, const xType {
@@ -2113,7 +2112,6 @@ import_array();
 %apply xType &OUTPUT {xType &OUTPUT4};
 %apply xType &OUTPUT {xType &OUTPUT5};
 %apply xType &OUTPUT {xType &OUTPUT6};
-%apply xType &OUTPUT {xType &OUTPUT_appelflap};
 
 // Inputs marked INOUT are also returned by the function, ...
 %typemap(argout,noblock=1,fragment="casadi_all") xType &INOUT {
@@ -2135,15 +2133,12 @@ import_array();
 %typemap(freearg, noblock=1) xType& INOUT {}
 
 // Alternative names
-//%apply xType &INOUT {xType &INOUT1};
-//%apply xType &INOUT {xType &INOUT2};
-//%apply xType &INOUT {xType &INOUT3};
-//%apply xType &INOUT {xType &INOUT4};
-//%apply xType &INOUT {xType &INOUT5};
-//%apply xType &INOUT {xType &INOUT6};
-
-//%typemap(argout) xType &INOUT* = Type &INOUT;
-
+%apply xType &INOUT {xType &INOUT1};
+%apply xType &INOUT {xType &INOUT2};
+%apply xType &INOUT {xType &INOUT3};
+%apply xType &INOUT {xType &INOUT4};
+%apply xType &INOUT {xType &INOUT5};
+%apply xType &INOUT {xType &INOUT6};
 
 %enddef
 
