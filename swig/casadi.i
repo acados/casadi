@@ -2256,7 +2256,6 @@ if __name__ != "casadi.casadi":
             take care not to add a trailing '/casadi'.
 
         """)
-import _casadi
 
 def swigtypeconvertor(*args):
   return swig_typename_convertor_python2cpp(args)

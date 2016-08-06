@@ -92,7 +92,6 @@ matrix:
         - make -j2
         - sudo make -j2 install
         - popd
-        - remote_access
         - python3 -c "from casadi.tools import *;loadAllCompiledPlugins()"
         
         #- (while true ; do sleep 60 ; echo "ping" ; done ) &
