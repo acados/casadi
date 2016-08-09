@@ -231,13 +231,27 @@ def _swig_repr(self):
 
 %feature("customdoc:arg:self", "self");
 
+#if defined(SWIGMATLAB) || defined(SWIGOCTAVE)
+  #define MNAME "$NAME"
+  %feature("customdoc:proto:constructor", "new_obj = $NAME($in)");
+  %feature("customdoc:proto:single_out", "$out = $NAME($in)");
+  %feature("customdoc:proto:normal", "[$out] = $NAME($in)");
+  %feature("customdoc:main", "    $NAME $brief\n\n$overview\n$main");
+#else
+  #define MNAME "$name"
+  %feature("customdoc:proto:constructor", "$name($in)");
+  %feature("customdoc:proto:single_out", "$name($in) -> $out");
+  %feature("customdoc:proto:normal", "$name($in) -> ($out)");
+  %feature("customdoc:main", "  $brief\n\n$overview\n$main");
+#endif
+
 %feature("customdoc:arg:normal:style_error", "$type");
 %feature("customdoc:arg:only:style_error", "$type");
 %feature("customdoc:arg:separator:style_error", ",");
-%feature("customdoc:proto:void:style_error", "$NAME($in)");
-%feature("customdoc:proto:single_out:style_error", "$NAME($in)");
-%feature("customdoc:proto:normal:style_error", "$NAME($in)");
-%feature("customdoc:proto:constructor:style_error", "$NAME($in)");
+%feature("customdoc:proto:void:style_error", MNAME "($in)");
+%feature("customdoc:proto:single_out:style_error", MNAME "($in)");
+%feature("customdoc:proto:normal:style_error", MNAME "($in)");
+%feature("customdoc:proto:constructor:style_error", MNAME "($in)");
 
 %feature("customdoc:arg:normal", "$type $name");
 %feature("customdoc:arg:only", "$type $name");
@@ -246,21 +260,16 @@ def _swig_repr(self):
 %feature("customdoc:arg:separator", ", ");
 
 
-%feature("customdoc:proto:void", "$NAME($in)");
-%feature("customdoc:proto:constructor", "new_obj = $NAME($in)");
-%feature("customdoc:proto:single_out", "$out = $NAME($in)");
-%feature("customdoc:proto:normal", "[$out] = $NAME($in)");
-%feature("customdoc:proto:single_out:style_group", "$NAME($in)");
-%feature("customdoc:proto:normal:style_group", "$NAME($in)");
-%feature("customdoc:proto:constructor:style_group", "$NAME($in)");
+%feature("customdoc:proto:void", MNAME "($in)");
+%feature("customdoc:proto:single_out:style_group", MNAME "($in)");
+%feature("customdoc:proto:normal:style_group", MNAME "($in)");
+%feature("customdoc:proto:constructor:style_group", MNAME "($in)");
 
 %feature("customdoc:protoline", "    $proto");
 %feature("customdoc:protoline:style_overview", "  $proto\n    $brief");
 %feature("customdoc:protoline:nobrief:style_overview", "  $proto");
 
 %feature("customdoc:protoline:style_group", "> $proto");
-
-%feature("customdoc:main", "    $NAME $brief\n\n$overview\n$main");
 
 %feature("customdoc:group", "$group------------------------------------------------------------------------\n$main\n");
 
@@ -2182,16 +2191,6 @@ import_array();
 %define PREC_STRING 180 %enddef
 %define PREC_FUNCTION 200 %enddef
 
-#ifdef SWIGMATLAB
-  #define LSTR "char"
-  #define LDICT "struct"
-  #define LSTRKEY "struct:"
-#else
-  #define LSTR "str"
-  #define LDICT "Dict"
-  #define LSTRKEY "str:"
-#endif
-
 #ifndef SWIGXML
 
  // std::ostream & is not typemapped to anything useful and should be ignored
@@ -2199,48 +2198,86 @@ import_array();
 %typemap(in, noblock=1, numinputs=0) std::ostream &stream ""
 
 
-%casadi_typemaps(LSTR, PREC_STRING, std::string)
-%casadi_template("["LSTR"]", PREC_STRING, std::vector<std::string>)
+#define L_INT "int"
+#define L_BOOL "bool"
+#define LPAIR(A,B) "(" A "," B ")"
+
+#if defined(SWIGMATLAB) || defined(SWIGOCTAVE)
+  #define L_DOUBLE "double"
+  #define L_DICT "struct"
+  #define LDICT(ARG) L_DICT ":" ARG
+  #define LL "{"
+  #define LR "}"
+  #define L_STR "char"
+  #define MATLABSTYLE
+#else
+  #define LL "["
+  #define LR "]"
+  #define L_DICT "dict"
+  #define L_DOUBLE "float"
+  #define LDICT(ARG) L_DICT ":" ARG
+  #define L_STR "str"
+#endif
+
+%casadi_typemaps(L_STR, PREC_STRING, std::string)
+%casadi_template("[" L_STR "]", PREC_STRING, std::vector<std::string>)
 %casadi_typemaps("Sparsity", PREC_SPARSITY, casadi::Sparsity)
-%casadi_template("[Sparsity]", PREC_SPARSITY, std::vector< casadi::Sparsity>)
-%casadi_template("[[Sparsity]]", PREC_SPARSITY, std::vector<std::vector< casadi::Sparsity> >)
-%casadi_template(LSTR":Sparsity", PREC_SPARSITY, std::map<std::string, casadi::Sparsity >)
-%casadi_template(LSTR":[Sparsity]", PREC_SPARSITY, std::map<std::string, std::vector<casadi::Sparsity > >)
-%casadi_template("("LSTR":Sparsity,["LSTR"])", PREC_SPARSITY, std::pair<std::map<std::string, casadi::Sparsity >, std::vector<std::string> >)
-%casadi_typemaps("bool", SWIG_TYPECHECK_BOOL, bool)
-%casadi_template("[bool]", SWIG_TYPECHECK_BOOL, std::vector<bool>)
-%casadi_template("[[bool]]", SWIG_TYPECHECK_BOOL, std::vector<std::vector<bool> >)
-%casadi_typemaps("int", SWIG_TYPECHECK_INTEGER, int)
-%casadi_template("(int,int)", SWIG_TYPECHECK_INTEGER, std::pair<int,int>)
-%casadi_template("[int]", PREC_IVector, std::vector<int>)
-%casadi_template("[[int]]", PREC_IVectorVector, std::vector<std::vector<int> >)
-%casadi_typemaps("double", SWIG_TYPECHECK_DOUBLE, double)
-%casadi_template("[double]", SWIG_TYPECHECK_DOUBLE, std::vector<double>)
-%casadi_template("[[double]]", SWIG_TYPECHECK_DOUBLE, std::vector<std::vector<double> >)
+%casadi_template(LL "Sparsity" LR, PREC_SPARSITY, std::vector< casadi::Sparsity>)
+%casadi_template(LL LL "Sparsity"  LR  LR, PREC_SPARSITY, std::vector<std::vector< casadi::Sparsity> >)
+%casadi_template(LDICT("Sparsity"), PREC_SPARSITY, std::map<std::string, casadi::Sparsity >)
+%casadi_template(LDICT(LL "Sparsity" LR), PREC_SPARSITY, std::map<std::string, std::vector<casadi::Sparsity > >)
+%casadi_template(LPAIR(LDICT("Sparsity"),"[" L_STR "]"), PREC_SPARSITY, std::pair<std::map<std::string, casadi::Sparsity >, std::vector<std::string> >)
+%casadi_typemaps(L_BOOL, SWIG_TYPECHECK_BOOL, bool)
+%casadi_template("[" L_BOOL "]", SWIG_TYPECHECK_BOOL, std::vector<bool>)
+%casadi_template("[[" L_BOOL "]]", SWIG_TYPECHECK_BOOL, std::vector<std::vector<bool> >)
+%casadi_typemaps( L_INT , SWIG_TYPECHECK_INTEGER, int)
+
+#ifdef MATLABSTYLE
+#define LABEL "[int,int]"
+#else
+#define LABEL LPAIR("int","int")
+#endif
+%casadi_template(LABEL, SWIG_TYPECHECK_INTEGER, std::pair<int,int>)
+#undef LABEL
+%casadi_template("[" L_INT "]", PREC_IVector, std::vector<int>)
+%casadi_template("[[" L_INT "]]", PREC_IVectorVector, std::vector<std::vector<int> >)
+%casadi_typemaps(L_DOUBLE, SWIG_TYPECHECK_DOUBLE, double)
+%casadi_template("[" L_DOUBLE "]", SWIG_TYPECHECK_DOUBLE, std::vector<double>)
+%casadi_template("[[" L_DOUBLE "]]", SWIG_TYPECHECK_DOUBLE, std::vector<std::vector<double> >)
 %casadi_typemaps("SXElem", PREC_SX, casadi::SXElem)
-%casadi_template("[SXElem]", PREC_SXVector, std::vector<casadi::SXElem>)
+%casadi_template(LL "SXElem" LR, PREC_SXVector, std::vector<casadi::SXElem>)
 %casadi_typemaps("SX", PREC_SX, casadi::Matrix<casadi::SXElem>)
-%casadi_template("[SX]", PREC_SXVector, std::vector< casadi::Matrix<casadi::SXElem> >)
-%casadi_template("[[SX]]", PREC_SXVectorVector, std::vector<std::vector< casadi::Matrix<casadi::SXElem> > >)
-%casadi_template(LSTRKEY"SX", PREC_SX, std::map<std::string, casadi::Matrix<casadi::SXElem> >)
+%casadi_template(LL "SX" LR, PREC_SXVector, std::vector< casadi::Matrix<casadi::SXElem> >)
+%casadi_template(LL "SX" LR LR, PREC_SXVectorVector, std::vector<std::vector< casadi::Matrix<casadi::SXElem> > >)
+%casadi_template(LDICT("SX"), PREC_SX, std::map<std::string, casadi::Matrix<casadi::SXElem> >)
 %casadi_typemaps("MX", PREC_MX, casadi::MX)
-%casadi_template("[MX]", PREC_MXVector, std::vector<casadi::MX>)
-%casadi_template("[[MX]]", PREC_MXVectorVector, std::vector<std::vector<casadi::MX> >)
-%casadi_template(LSTRKEY"MX", PREC_MX, std::map<std::string, casadi::MX>)
+%casadi_template(LL "MX" LR, PREC_MXVector, std::vector<casadi::MX>)
+%casadi_template(LL LL "MX" LR LR, PREC_MXVectorVector, std::vector<std::vector<casadi::MX> >)
+%casadi_template(LDICT("MX"), PREC_MX, std::map<std::string, casadi::MX>)
 %casadi_typemaps("DM", PREC_DM, casadi::Matrix<double>)
-%casadi_template("[DM]", PREC_DMVector, std::vector< casadi::Matrix<double> >)
-%casadi_template("[[DM]]", PREC_DMVectorVector, std::vector<std::vector< casadi::Matrix<double> > >)
-%casadi_template(LSTRKEY"DM", PREC_DM, std::map<std::string, casadi::Matrix<double> >)
+%casadi_template(LL "DM" LR, PREC_DMVector, std::vector< casadi::Matrix<double> >)
+%casadi_template(LL LL "DM" LR LR, PREC_DMVectorVector, std::vector<std::vector< casadi::Matrix<double> > >)
+%casadi_template(LDICT("DM"), PREC_DM, std::map<std::string, casadi::Matrix<double> >)
 %casadi_typemaps("IM", PREC_IM, casadi::Matrix<int>)
-%casadi_template("[IM]", PREC_IMVector, std::vector< casadi::Matrix<int> >)
-%casadi_template("[[IM]]", PREC_IMVectorVector, std::vector<std::vector< casadi::Matrix<int> > >)
+%casadi_template(LL "IM" LR, PREC_IMVector, std::vector< casadi::Matrix<int> >)
+%casadi_template(LL "IM" LR LR, PREC_IMVectorVector, std::vector<std::vector< casadi::Matrix<int> > >)
 %casadi_typemaps("GenericType", PREC_GENERICTYPE, casadi::GenericType)
-%casadi_template("[GenericType]", PREC_GENERICTYPE, std::vector<casadi::GenericType>)
+%casadi_template(LL "GenericType" LR, PREC_GENERICTYPE, std::vector<casadi::GenericType>)
 %casadi_typemaps("Slice", PREC_SLICE, casadi::Slice)
 %casadi_typemaps("Function", PREC_FUNCTION, casadi::Function)
-%casadi_template("[Function]", PREC_FUNCTION, std::vector<casadi::Function>)
-%casadi_template("(Function,Function)", PREC_FUNCTION, std::pair<casadi::Function, casadi::Function>)
-%casadi_template(LDICT, PREC_DICT, std::map<std::string, casadi::GenericType>)
+%casadi_template(LL "Function" LR, PREC_FUNCTION, std::vector<casadi::Function>)
+%casadi_template(LPAIR("Function","Function"), PREC_FUNCTION, std::pair<casadi::Function, casadi::Function>)
+%casadi_template(L_DICT, PREC_DICT, std::map<std::string, casadi::GenericType>)
+
+#undef L_INT
+#undef L_BOOL
+#undef LPAIR
+#undef L_DOUBLE
+#undef L_DICT
+#undef LL
+#undef LR
+#undef L_STR
+#undef MATLABSTYLE
 
 #endif // SWIGXML
 
