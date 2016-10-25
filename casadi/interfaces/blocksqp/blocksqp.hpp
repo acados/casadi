@@ -31,87 +31,6 @@
 #include "casadi/core/function/nlpsol_impl.hpp"
 #include "../qpoases/qpoases_interface.hpp"
 
-namespace blocksqp {
-  /**
-   * \brief Class for easy access of elements of a dense matrix.
-   * \author Dennis Janka
-   * \date 2012-2015
-   */
-  class Matrix {
-  public:
-    int m;
-    int n;
-    int ldim;
-    double *array;
-    int tflag;
-  private:
-    int malloc();
-    int free();
-  public:
-    Matrix(int = 1, int = 1, int = -1);
-    Matrix(int, int, double*, int = -1);
-    Matrix(const Matrix& A);
-    virtual ~Matrix();
-
-    virtual double &operator()(int i, int j);
-    virtual double &operator()(int i, int j) const;
-    virtual double &operator()(int i);
-    virtual double &operator()(int i) const;
-    virtual Matrix &operator=(const Matrix &A);
-
-    Matrix &Dimension(int, int = 1, int = -1);
-    Matrix &Initialize(double (*)(int, int));
-    Matrix &Initialize(double val);
-
-    /// Returns just a pointer to the full matrix
-    Matrix& Submatrix(const Matrix&, int, int, int = 0, int = 0);
-  };
-
-  /**
-   * \brief Class for easy access of elements of a dense symmetric matrix.
-   * \author Dennis Janka
-   * \date 2012-2015
-   */
-  class SymMatrix : public Matrix {
-  protected:
-    int malloc();
-    int free();
-
-  public:
-    SymMatrix(int = 1);
-    SymMatrix(int, double*);
-    SymMatrix(int, int, int);
-    SymMatrix(int, int, double*, int = -1);
-    SymMatrix(const Matrix& A);
-    SymMatrix(const SymMatrix& A);
-    virtual ~SymMatrix();
-
-    virtual double &operator()(int i, int j);
-    virtual double &operator()(int i, int j) const;
-    virtual double &operator()(int i);
-    virtual double &operator()(int i) const;
-
-    SymMatrix &Dimension(int M = 1);
-    SymMatrix &Dimension(int M, int N, int LDIM);
-    SymMatrix &Initialize(double (*)(int, int));
-    SymMatrix &Initialize(double val);
-
-    SymMatrix& Submatrix(const Matrix &A, int M, int N, int i0=0, int j0=0);
-  };
-
-  //  Declaration of general purpose routines for matrix and vector computations
-  double l1VectorNorm(const Matrix &v);
-  double l2VectorNorm(const Matrix &v);
-  double lInfVectorNorm(const Matrix &v);
-  double lInfConstraintNorm(const Matrix &xi, const Matrix &constr,
-    const Matrix &bu, const Matrix &bl);
-
-  double adotb(const Matrix &a, const Matrix &b);
-  void Atimesb(const Matrix &A, const Matrix &b, Matrix &result);
-  void Atimesb(double *Anz, int *AIndRow, int *AIndCol, const Matrix &b, Matrix &result);
-
-} // namespace blocksqp
-
 /** \defgroup plugin_Nlpsol_blocksqp
   * This is a modified version of blockSQP by Janka et al.
   *
@@ -133,13 +52,12 @@ namespace casadi {
     /// Destructor
     ~BlocksqpMemory();
 
+    qpOASES::SymSparseMat *H;
+    qpOASES::Matrix *A;
     qpOASES::SQProblem* qp;
 
     // [Workaround] qpOASES memory block
     QpoasesMemory* qpoases_mem;
-
-    blocksqp::Matrix      bl;     // lower bounds of variables and constraints
-    blocksqp::Matrix      bu;     // upper bounds of variables and constraints
 
     // Stats
     int itCount;  // iteration number
@@ -167,26 +85,23 @@ namespace casadi {
     double lambdaStepNorm;  // norm of step in dual variables
     double tol;  // current optimality tolerance
 
-    blocksqp::Matrix xi;// variable vector
-    blocksqp::Matrix lambda;  // dual variables
-    blocksqp::Matrix constr;  // constraint vector
+    double *xk; // variable vector
+    double *lam_xk, *lam_gk; // dual variables
+    double *gk;  // constraint vector
 
-    blocksqp::Matrix constrJac;  // full constraint Jacobian (not used in sparse mode)
-    double *jacNz;  // nonzero elements of Jacobian (length)
-    int *jacIndRow;  // row indices (length)
-    int *jacIndCol;  // indices to first entry of columns (nCols+1)
+    double *jac_g;  // nonzero elements of Jacobian (length)
 
-    blocksqp::Matrix deltaMat;  // last m primal steps
-    blocksqp::Matrix deltaXi;  // alias for current step
-    blocksqp::Matrix gradObj;  // gradient of objective
-    blocksqp::Matrix gradLagrange;  // gradient of Lagrangian
-    blocksqp::Matrix gammaMat;  // Lagrangian gradient differences for last m steps
-    blocksqp::Matrix gamma;  // alias for current Lagrangian gradient
+    double *deltaMat;  // last m primal steps
+    double *dxk;  // alias for current step
+    double *grad_fk;  // gradient of objective
+    double *grad_lagk;  // gradient of Lagrangian
+    double *gammaMat;  // Lagrangian gradient differences for last m steps
+    double *gamma;  // alias for current Lagrangian gradient
 
-    blocksqp::SymMatrix *hess;  // [blockwise] pointer to current Hessian of the Lagrangian
-    blocksqp::SymMatrix *hess1;  // [blockwise] first Hessian approximation
-    blocksqp::SymMatrix *hess2;  // [blockwise] second Hessian approximation (convexified)
-    double *hessNz;  // nonzero elements of Hessian (length)
+    double **hess;  // [blockwise] pointer to current Hessian of the Lagrangian
+    double **hess1;  // [blockwise] first Hessian approximation
+    double **hess2;  // [blockwise] second Hessian approximation (convexified)
+    double *hess_lag;  // nonzero elements of Hessian (length)
     int *hessIndRow;  // row indices (length)
     int *hessIndCol;  // indices to first entry of columns (nCols+1)
     int *hessIndLo;  // Indices to first entry of lower triangle (including diagonal) (nCols)
@@ -194,18 +109,17 @@ namespace casadi {
     /*
      * Variables for QP solver
      */
-    blocksqp::Matrix deltaBl;  // lower bounds for current step
-    blocksqp::Matrix deltaBu;  // upper bounds for current step
-    blocksqp::Matrix lambdaQP;  // dual variables of QP
-    blocksqp::Matrix AdeltaXi;  // product of constraint Jacobian with deltaXi
+    double *lbx_qp, *ubx_qp, *lba_qp, *uba_qp;  // bounds for current step
+    double* lam_qp;  // dual variables of QP
+    double* jac_times_dxk;  // product of constraint Jacobian with dxk
 
     /*
      * For modified BFGS updates
      */
-    blocksqp::Matrix deltaNorm;  // sTs
-    blocksqp::Matrix deltaNormOld;  // (from previous iteration)
-    blocksqp::Matrix deltaGamma;  // sTy
-    blocksqp::Matrix deltaGammaOld;  // (from previous iteration)
+    double *delta_norm;  // sTs
+    double* delta_norm_old;  // (from previous iteration)
+    double* delta_gamma;  // sTy
+    double* delta_gamma_old;  // (from previous iteration)
     int *noUpdateCounter;  // count skipped updates for each block
 
     /*
@@ -215,9 +129,9 @@ namespace casadi {
     double alpha;  // stepsize for line search
     int nSOCS;  // number of second-order correction steps
     int reducedStepCount;  // count number of consecutive reduced steps,
-    blocksqp::Matrix deltaH; // inertia correction (filter line search w indef Hessian)
-    blocksqp::Matrix trialXi;  // new trial iterate (for line search)
-    std::set< std::pair<double, double> > *filter; // Filter contains pairs (constrVio, objective)
+    double* delta_h; // inertia correction (filter line search w indef Hessian)
+    double* trial_xk;  // new trial iterate (for line search)
+    std::set< std::pair<double, double> > filter; // Filter contains pairs (constrVio, objective)
 
     // Temporary memory
     double* jac;
@@ -271,22 +185,24 @@ namespace casadi {
     // Block partitioning
     int nblocks_;
     std::vector<int> blocks_;
+    std::vector<int> dim_;
+    int nnz_H_;
 
     // Jacobian/Hessian sparsity
     Sparsity Asp_, Hsp_;
 
-    // TO BE REFACTORED
-
     /// Main Loop of SQP method
     int run(BlocksqpMemory* m, int maxIt, int warmStart = 0) const;
+    /// Compute gradient of Lagrangian function (sparse version)
+    void calcLagrangeGradient(BlocksqpMemory* m,
+      const double* lam_x, const double* lam_g,
+      const double* grad_f, double *jacNz,
+      double *grad_lag, int flag) const;
+
+    /// Overloaded function for convenience, uses current variables of SQPiterate vars
+    void calcLagrangeGradient(BlocksqpMemory* m, double* grad_lag, int flag) const;
     /// Print information about the SQP method
     void printInfo(BlocksqpMemory* m) const;
-    /// Compute gradient of Lagrangian function (sparse version)
-    void calcLagrangeGradient(BlocksqpMemory* m, const blocksqp::Matrix &lambda,
-      const blocksqp::Matrix &gradObj, double *jacNz, int *jacIndRow, int *jacIndCol,
-      blocksqp::Matrix &gradLagrange, int flag) const;
-    /// Overloaded function for convenience, uses current variables of SQPiterate vars
-    void calcLagrangeGradient(BlocksqpMemory* m, blocksqp::Matrix &gradLagrange, int flag) const;
     /// Update optimization tolerance (similar to SNOPT) in current iterate
     bool calcOptTol(BlocksqpMemory* m) const;
 
@@ -297,7 +213,7 @@ namespace casadi {
     void updateStepBounds(BlocksqpMemory* m, bool soc) const;
     // Solve a QP with QPOPT or qpOASES to obtain a step deltaXi and estimates
     // for the Lagrange multipliers
-    int solveQP(BlocksqpMemory* m, blocksqp::Matrix &deltaXi, blocksqp::Matrix &lambdaQP,
+    int solveQP(BlocksqpMemory* m, double* deltaXi, double* lambdaQP,
       bool matricesChanged = true) const;
     // Compute the next Hessian in the inner loop of increasingly convexified
     // QPs and store it in vars->hess2
@@ -309,8 +225,8 @@ namespace casadi {
     /// No globalization strategy
     int fullstep(BlocksqpMemory* m) const;
     /// Set new primal dual iterate
-    void acceptStep(BlocksqpMemory* m, const blocksqp::Matrix &deltaXi,
-      const blocksqp::Matrix &lambdaQP, double alpha, int nSOCS) const;
+    void acceptStep(BlocksqpMemory* m, const double* deltaXi,
+      const double* lambdaQP, double alpha, int nSOCS) const;
     // Overloaded function for convenience, uses current variables of SQPiterate vars
     void acceptStep(BlocksqpMemory* m, double alpha) const;
     // Reduce stepsize if a step is rejected
@@ -341,37 +257,34 @@ namespace casadi {
     // Set initial Hessian: Identity matrix
     void calcInitialHessian(BlocksqpMemory* m) const;
     // [blockwise] Set initial Hessian: Identity matrix
-    void calcInitialHessian(BlocksqpMemory* m, int iBlock) const;
+    void calcInitialHessian(BlocksqpMemory* m, int b) const;
     // Reset Hessian to identity and remove past information on Lagrange gradient and steps
     void resetHessian(BlocksqpMemory* m) const;
     // [blockwise] Reset Hessian to identity and remove past information on
     // Lagrange gradient and steps
-    void resetHessian(BlocksqpMemory* m, int iBlock) const;
+    void resetHessian(BlocksqpMemory* m, int b) const;
     // Compute full memory Hessian approximations based on update formulas
     void calcHessianUpdate(BlocksqpMemory* m, int updateType, int hessScaling) const;
     // Compute limited memory Hessian approximations based on update formulas
     void calcHessianUpdateLimitedMemory(BlocksqpMemory* m, int updateType, int hessScaling) const;
     // [blockwise] Compute new approximation for Hessian by SR1 update
-    void calcSR1(BlocksqpMemory* m, const blocksqp::Matrix &gamma, const blocksqp::Matrix &delta,
-      int iBlock) const;
+    void calcSR1(BlocksqpMemory* m, const double* gamma, const double* delta,
+      int b) const;
     // [blockwise] Compute new approximation for Hessian by BFGS update with Powell modification
-    void calcBFGS(BlocksqpMemory* m, const blocksqp::Matrix &gamma, const blocksqp::Matrix &delta,
-      int iBlock) const;
+    void calcBFGS(BlocksqpMemory* m, const double* gamma, const double* delta,
+      int b) const;
     // Set pointer to correct step and Lagrange gradient difference in a limited memory context
     void updateDeltaGamma(BlocksqpMemory* m) const;
 
     /*
      * Scaling of Hessian Approximation
      */
-    // [blockwise] Update scalars for COL sizing of Hessian approximation
-    void updateScalars(BlocksqpMemory* m, const blocksqp::Matrix &gamma,
-      const blocksqp::Matrix &delta, int iBlock) const;
     // [blockwise] Size Hessian using SP, OL, or mean sizing factor
-    void sizeInitialHessian(BlocksqpMemory* m, const blocksqp::Matrix &gamma,
-      const blocksqp::Matrix &delta, int iBlock, int option) const;
+    void sizeInitialHessian(BlocksqpMemory* m, const double* gamma,
+      const double* delta, int b, int option) const;
     // [blockwise] Size Hessian using the COL scaling factor
-    void sizeHessianCOL(BlocksqpMemory* m, const blocksqp::Matrix &gamma,
-      const blocksqp::Matrix &delta, int iBlock) const;
+    void sizeHessianCOL(BlocksqpMemory* m, const double* gamma,
+      const double* delta, int b) const;
 
     /*
     * STATS
@@ -380,47 +293,23 @@ namespace casadi {
     void updateStats(BlocksqpMemory* m) const;
     /// Print one line of output to stdout about the current iteration
     void printProgress(BlocksqpMemory* m) const;
-    /// Allocate variables that any SQP code needs
-    void allocMin(BlocksqpMemory* m) const;
-    /// Allocate diagonal block Hessian
-    void allocHess(BlocksqpMemory* m) const;
+    /// Reset variables that any SQP code needs
+    void reset_sqp(BlocksqpMemory* m) const;
     /// Convert *hess to column compressed sparse format
-    void convertHessian(BlocksqpMemory* m, double eps,
-                         blocksqp::SymMatrix *&hess_,
-                         double *&hessNz_, int *&hessIndRow_, int *&hessIndCol_,
-                         int *&hessIndLo_) const;
-    /// Allocate variables specifically needed by vmused SQP method
-    void allocAlg(BlocksqpMemory* m) const;
+    void convertHessian(BlocksqpMemory* m) const;
     /// Set initial filter, objective function, tolerances etc.
     void initIterate(BlocksqpMemory* m) const;
 
-    // Set initial values for xi (and possibly lambda) and parts of the
-    // Jacobian that correspond to linear constraints (sparse version).
-    void initialize(BlocksqpMemory* m, blocksqp::Matrix &xi,
-                    blocksqp::Matrix &lambda,
-                    double *&jacNz,
-                    int *&jacIndRow,
-                    int *&jacIndCol) const;
-
     /// Evaluate objective and constraints, including derivatives
-    int evaluate(BlocksqpMemory* m, const blocksqp::Matrix &xi,
-                  const blocksqp::Matrix &lambda,
-                  double *objval,
-                  blocksqp::Matrix &constr,
-                  blocksqp::Matrix &gradObj,
-                  double *&jacNz,
-                  int *&jacIndRow,
-                  int *&jacIndCol,
-                  blocksqp::SymMatrix *&hess) const;
+    int evaluate(BlocksqpMemory* m, double *f, double *g,
+                 double *grad_f, double *jac_g) const;
 
     /// Evaluate objective and constraints, no derivatives
-    int evaluate(BlocksqpMemory* m, const blocksqp::Matrix &xi,
-                  double *objval,
-                  blocksqp::Matrix &constr) const;
+    int evaluate(BlocksqpMemory* m, const double *xk,
+                 double *f, double *g) const;
 
-    void reduceConstrVio(BlocksqpMemory* m, blocksqp::Matrix &xi, int *info) const {
-      *info = 1;
-    }
+    //  Declaration of general purpose routines for matrix and vector computations
+    double lInfConstraintNorm(BlocksqpMemory* m, const double* xk, const double* g) const;
 
     /// QP solver for the subproblems
     //Function qpsol_;
@@ -438,15 +327,15 @@ namespace casadi {
 
     // Algorithmic options
     bool schur_;  // Use qpOASES schur compliment approach
-    int globalization_; // Globalization strategy
-    int restore_feas_;// Use feasibility restoration phase
+    bool globalization_; // Globalization strategy
+    bool restore_feas_;// Use feasibility restoration phase
     int max_line_search_;  // Maximum number of steps in line search
     int max_consec_reduced_steps_;// Maximum number of consecutive reduced steps
     int max_consec_skipped_updates_; // Maximum number of consecutive skipped updates
     int max_it_qp_;  // Maximum number of QP iterations per SQP iteration
     int max_iter_; // Maximum number of SQP steps
     bool warmstart_; // Use warmstarting
-    int block_hess_;  // Blockwise Hessian approximation?
+    bool block_hess_;  // Blockwise Hessian approximation?
     int hess_scaling_;// Scaling strategy for Hessian approximation
     int fallback_scaling_;  // If indefinite update is used, the type of fallback strategy
     double max_time_qp_;  // Maximum number of time in seconds per QP solve per SQP iteration

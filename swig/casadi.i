@@ -421,7 +421,7 @@ namespace std {
 
 %{
 #define SWIG_FILE_WITH_INIT
-#include "numpy.hpp"
+#include "casadi_numpy.hpp"
 %}
 
 %init %{
@@ -436,7 +436,10 @@ import_array();
 
 #ifndef SWIGXML
 
-%fragment("casadi_decl", "header") {
+// Can be overloaded by specifying before importing casadi.i
+%fragment("casadi_extra_decl", "header") {}
+
+%fragment("casadi_decl", "header",fragment="casadi_extra_decl") {
   namespace casadi {
     /* Check if Null or None */
     bool is_null(GUESTOBJECT *p);
@@ -2033,8 +2036,11 @@ import_array();
   } // namespace casadi
  }
 
+// Can be overloaded by specifying before importing casadi.i
+%fragment("casadi_extra", "header") {}
+
 // Collect all fragments
-%fragment("casadi_all", "header", fragment="casadi_aux,casadi_bool,casadi_int,casadi_double,casadi_vector,casadi_function,casadi_generictype,casadi_string,casadi_slice,casadi_map,casadi_pair,casadi_sx,casadi_sxelem,casadi_mx,casadi_dmatrix,casadi_sparsity,casadi_imatrix") { }
+%fragment("casadi_all", "header", fragment="casadi_aux,casadi_extra,casadi_bool,casadi_int,casadi_double,casadi_vector,casadi_function,casadi_generictype,casadi_string,casadi_slice,casadi_map,casadi_pair,casadi_sx,casadi_sxelem,casadi_mx,casadi_dmatrix,casadi_sparsity,casadi_imatrix") { }
 
 #endif // SWIGXML
 
@@ -2296,7 +2302,7 @@ if __name__ != "casadi.casadi":
 
 def swigtypeconvertor(*args):
   return swig_typename_convertor_python2cpp(args)
-  
+
 def swig_typename_convertor_python2cpp(a):
   try:
     import numpy as np
@@ -2902,6 +2908,10 @@ DECL M casadi_tril2symm(const M& a) {
 
 DECL M casadi_triu2symm(const M& a) {
   return triu2symm(a);
+}
+
+DECL M casadi_norm_fro(const M& x) {
+  return norm_fro(x);
 }
 
 DECL M casadi_norm_F(const M& x) {
@@ -3637,14 +3647,14 @@ namespace casadi{
 %extend GenericMatrixCommon {
   %matlabcode %{
     function varargout = subsref(self,s)
-      if numel(s)==1 & s.type=='()'
+      if numel(s)==1 && strcmp(s.type,'()')
         [varargout{1}] = paren(self, s.subs{:});
       else
         [varargout{1:nargout}] = builtin('subsref',self,s);
       end
     end
     function self = subsasgn(self,s,v)
-      if numel(s)==1 & s.type=='()'
+      if numel(s)==1 && strcmp(s.type,'()')
         paren_asgn(self, v, s.subs{:});
       else
         self = builtin('subsasgn',self,s,v);
@@ -3675,25 +3685,35 @@ namespace casadi{
     end
     function out = norm(self,varargin)
       narginchk(1,2);
+      % 2-norm by default
       if nargin==1
-        out = norm_2(self);
+        ind = 2;
       else
-        i = varargin{1};
-        if i==1
-          out = norm_1(self);
-        elseif i==2
-          out = norm_2(self);
-        elseif i==inf | i=='inf'
-          out = norm_inf(self);
-        elseif i=='fro'
-          out = norm_F(self);
-          return
-        else
-          error('norm argument (if present) must be 1, 2 or inf or fro');
-        end
+        ind = varargin{1};
       end
-      if ~is_vector(self)
-        error('only norms of vectors defined for now. You may try norm_1 norm_2 norm_inf norm_F.');
+      % Typecheck
+      assert((isnumeric(ind) && isscalar(ind)) || ischar(ind))
+      % Pick the right norm
+      if isnumeric(ind)
+        switch ind
+          case 1
+            out = norm_1(self);
+          case 2
+            out = norm_2(self);
+          case inf
+            out = norm_inf(self);
+          otherwise
+            error(sprintf('Unknown norm argument: %g', ind))
+        end
+      else
+        switch ind
+          case 'fro'
+            out = norm_fro(self);
+          case 'inf'
+            out = norm_inf(self);
+          otherwise
+            error(sprintf('Unknown norm argument: ''%s''', ind))
+        end
       end
     end
     function b = isrow(self)
@@ -3713,7 +3733,7 @@ namespace casadi{
 %extend Function {
   %matlabcode %{
     function varargout = subsref(self,s)
-      if numel(s)==1 & s.type=='()'
+      if numel(s)==1 && strcmp(s.type,'()')
         [varargout{1:nargout}]= paren(self, s.subs{:});
       else
         [varargout{1:nargout}] = builtin('subsref',self,s);

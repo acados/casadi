@@ -1819,10 +1819,53 @@ namespace casadi {
   }
 
   Function FunctionInternal::get_forward_old(const std::string& name, int nfwd, Dict& opts) {
-    casadi_error("'get_forward' not defined for " + type_name());
+    // Call new implementation
+    Function d = forward(nfwd);
+
+    // Scheme
+    vector<string> ischeme = opts["input_scheme"];
+
+    // Expressions for inputs
+    vector<MX> arg = MX::get_input(d);
+    arg.resize(n_in() + n_out());
+    arg.reserve(n_in() + n_out() + nfwd*n_in());
+    for (int d=0; d<nfwd; ++d) {
+      for (int i=0; i<n_in(); ++i) {
+        arg.push_back(MX::sym(ischeme.at(arg.size()), sparsity_in(i)));
+      }
+    }
+
+    // Argument for calling d
+    vector<MX> d_arg(arg.begin(), arg.begin() + n_in() + n_out());
+    vector<MX> v(nfwd);
+    for (int i=0; i<n_in(); ++i) {
+      for (int d=0; d<nfwd; ++d) {
+        v[d] = arg.at(n_in() + n_out() + d*n_in() + i);
+      }
+      d_arg.push_back(horzcat(v));
+    }
+
+    // Call d
+    vector<MX> d_res = d(d_arg);
+    casadi_assert(d_res.size()==n_out());
+
+    // Expressions for outputs
+    vector<MX> res(n_out()*nfwd);
+    for (int i=0; i<n_out(); ++i) {
+      v = horzsplit(d_res[i], size2_out(i));
+      casadi_assert(v.size()==nfwd);
+      for (int d=0; d<nfwd; ++d) {
+        res[d*n_out() + i] = v[d];
+      }
+    }
+
+    // Construct new function
+    return Function(name, arg, res, opts);
   }
 
   Function FunctionInternal::get_forward(const std::string& name, int nfwd, Dict& opts) {
+    casadi_error("'get_forward' not defined for " + type_name());
+
     // Call old implementation
     Function d = forward_old(nfwd);
     // Get expressions for inputs and outputs
@@ -1850,10 +1893,53 @@ namespace casadi {
   }
 
   Function FunctionInternal::get_reverse_old(const std::string& name, int nadj, Dict& opts) {
-    casadi_error("'get_reverse' not defined for " + type_name());
+    // Call new implementation
+    Function d = reverse(nadj);
+
+    // Scheme
+    vector<string> ischeme = opts["input_scheme"];
+
+    // Expressions for inputs
+    vector<MX> arg = MX::get_input(d);
+    arg.resize(n_in() + n_out());
+    arg.reserve(n_in() + n_out() + nadj*n_out());
+    for (int d=0; d<nadj; ++d) {
+      for (int i=0; i<n_out(); ++i) {
+        arg.push_back(MX::sym(ischeme.at(arg.size()), sparsity_out(i)));
+      }
+    }
+
+    // Argument for calling d
+    vector<MX> d_arg(arg.begin(), arg.begin() + n_in() + n_out());
+    vector<MX> v(nadj);
+    for (int i=0; i<n_out(); ++i) {
+      for (int d=0; d<nadj; ++d) {
+        v[d] = arg.at(n_in() + n_out() + d*n_out() + i);
+      }
+      d_arg.push_back(horzcat(v));
+    }
+
+    // Call d
+    vector<MX> d_res = d(d_arg);
+    casadi_assert(d_res.size()==n_in());
+
+    // Expressions for outputs
+    vector<MX> res(n_in()*nadj);
+    for (int i=0; i<n_in(); ++i) {
+      v = horzsplit(d_res[i], size2_in(i));
+      casadi_assert(v.size()==nadj);
+      for (int d=0; d<nadj; ++d) {
+        res[d*n_in() + i] = v[d];
+      }
+    }
+
+    // Construct new function
+    return Function(name, arg, res, opts);
   }
 
   Function FunctionInternal::get_reverse(const std::string& name, int nadj, Dict& opts) {
+    casadi_error("'get_reverse' not defined for " + type_name());
+
     // Call old implementation
     Function d = reverse_old(nadj);
     // Get expressions for inputs and outputs
@@ -1914,11 +2000,7 @@ namespace casadi {
     }
 
     // Create a call-node
-    res = create_call(arg);
-  }
-
-  std::vector<MX> FunctionInternal::create_call(const std::vector<MX>& arg) {
-    return Call::create(self(), arg);
+    res = Call::create(self(), arg);
   }
 
   Function FunctionInternal::

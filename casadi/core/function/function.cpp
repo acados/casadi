@@ -54,7 +54,7 @@ namespace casadi {
     // Make sure that the file is ready for reading
     if (!file.good()) return false;
     // Have we already wrapped around once?
-    bool wrapped_around = false;
+    //bool wrapped_around = false;
     // Read line-by-line
     string tmp;
     while (true) {
@@ -872,8 +872,16 @@ namespace casadi {
     return (*this)->forward_old(nfwd);
   }
 
+  Function Function::forward_new(int nfwd) {
+    return (*this)->forward(nfwd);
+  }
+
   Function Function::reverse(int nadj) {
     return (*this)->reverse_old(nadj);
+  }
+
+  Function Function::reverse_new(int nadj) {
+    return (*this)->reverse(nadj);
   }
 
   void Function::set_forward(const Function& fcn, int nfwd) {

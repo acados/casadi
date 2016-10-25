@@ -1,3 +1,6 @@
+%exception  casadi::Function::forward(int nfwd) {
+ CATCH_OR_NOT(DEPRECATED_MSG("") $action)
+}
 %exception  casadi::Function::integrator_dae() {
  CATCH_OR_NOT(DEPRECATED_MSG("") $action)
 }
@@ -10,6 +13,18 @@
 %exception  casadi::Function::printOptions(std::ostream &stream=casadi::userOut()) const  {
  CATCH_OR_NOT(DEPRECATED_MSG("") $action)
 }
+%exception  casadi::Function::reverse(int nfwd) {
+ CATCH_OR_NOT(DEPRECATED_MSG("") $action)
+}
+%exception  casadi::Function::set_forward(const Function &fcn, int nfwd) {
+ CATCH_OR_NOT(DEPRECATED_MSG("") $action)
+}
+%exception  casadi::Function::set_reverse(const Function &fcn, int nadj) {
+ CATCH_OR_NOT(DEPRECATED_MSG("") $action)
+}
+%exception  casadi::collocationInterpolators(const std::vector< double > &tau_root, std::vector< std::vector< double > > &output_C, std::vector< double > &output_D) {
+ CATCH_OR_NOT(DEPRECATED_MSG("") $action)
+}
 %exception  casadi::doc_linsol(const std::string &name) {
  CATCH_OR_NOT(DEPRECATED_MSG("") $action)
 }
@@ -20,5 +35,8 @@
  CATCH_OR_NOT(DEPRECATED_MSG("") $action)
 }
 %exception  casadi::load_linsol(const std::string &name) {
+ CATCH_OR_NOT(DEPRECATED_MSG("") $action)
+}
+%exception  norm_F(const MatType &x) {
  CATCH_OR_NOT(DEPRECATED_MSG("") $action)
 }

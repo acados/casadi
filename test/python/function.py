@@ -1064,7 +1064,7 @@ class Functiontests(casadiTestCase):
         def eval(self,arg):
           return [2, 1]
       f = Fun()
-      
+
       s = ""
       try:
         f(2)
@@ -1081,7 +1081,7 @@ class Functiontests(casadiTestCase):
         def eval(self,arg):
           return [2, 1]
       f = Fun()
-      
+
       s = ""
       try:
         f(2,3)
@@ -1247,7 +1247,7 @@ class Functiontests(casadiTestCase):
 
   @requires_nlpsol("ipopt")
   def test_common_specific_options(self):
-    
+
       x = SX.sym("x")
 
       nlp = {"x": x, "f": x**2}

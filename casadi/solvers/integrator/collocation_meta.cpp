@@ -23,13 +23,13 @@
  */
 
 
-      #include "rk_integrator.hpp"
+      #include "collocation.hpp"
       #include <string>
 
-      const std::string casadi::RkIntegrator::meta_doc=
+      const std::string casadi::Collocation::meta_doc=
       "\n"
-"Fixed-step explicit Runge-Kutta integrator for ODEs Currently\n"
-"implements RK4.\n"
+"Fixed-step implicit Runge-Kutta integrator ODE/DAE integrator based on\n"
+"collocation schemes\n"
 "\n"
 "The method is still under development\n"
 "\n"
@@ -39,6 +39,21 @@
 "+-----------------+-----------------+-----------------+-----------------+\n"
 "|       Id        |      Type       |     Default     |   Description   |\n"
 "+=================+=================+=================+=================+\n"
+"| collocation_sch | OT_STRING       | \"radau\"         | Collocation     |\n"
+"| eme             |                 |                 | scheme (radau|l |\n"
+"|                 |                 |                 | egendre)        |\n"
+"+-----------------+-----------------+-----------------+-----------------+\n"
+"| implicit_solver | OT_STRING       | GenericType()   | An implicit     |\n"
+"|                 |                 |                 | function solver |\n"
+"+-----------------+-----------------+-----------------+-----------------+\n"
+"| implicit_solver | OT_DICT   | GenericType()   | Options to be   |\n"
+"| _options        |                 |                 | passed to the   |\n"
+"|                 |                 |                 | NLP Solver      |\n"
+"+-----------------+-----------------+-----------------+-----------------+\n"
+"| interpolation_o | OT_INT      | 3               | Order of the    |\n"
+"| rder            |                 |                 | interpolating   |\n"
+"|                 |                 |                 | polynomials     |\n"
+"+-----------------+-----------------+-----------------+-----------------+\n"
 "| number_of_finit | OT_INT      | 20              | Number of       |\n"
 "| e_elements      |                 |                 | finite elements |\n"
 "+-----------------+-----------------+-----------------+-----------------+\n"
